@@ -1,7 +1,9 @@
 name: Publish release
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths: ['manifest.json', 'releases/**', '.github/workflows/release.yml']
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -17,10 +19,16 @@ jobs:
         run: |
           cd releases
           sha256sum --check SHA256SUMS
+      - name: Read release version
+        run: python3 -c 'import json, os; v=json.load(open("manifest.json"))[0]["versions"][0]["version"]; open(os.environ["GITHUB_ENV"], "a").write("RELEASE_TAG=v" + v + "\n")'
       - name: Publish tested package
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" releases/JellyDaily_*.zip manifest.json releases/SHA256SUMS \
-            --verify-tag --prerelease --title "Daily Episodes $GITHUB_REF_NAME (experimental MVP)" \
-            --notes-file docs/release-notes.md
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; keeping its assets unchanged."
+          else
+            gh release create "$RELEASE_TAG" releases/JellyDaily_*.zip manifest.json releases/SHA256SUMS \
+              --verify-tag --prerelease --title "Daily Episodes $RELEASE_TAG (experimental MVP)" \
+              --notes-file docs/release-notes.md
+          fi
