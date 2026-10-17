@@ -3,7 +3,7 @@ BASE=os.environ.get('JELLY_DAILY_SMOKE_URL', 'http://127.0.0.1:18096')
 CONTAINER=os.environ.get('JELLY_DAILY_SMOKE_CONTAINER', 'jelly-daily-smoke')
 def req(path, method='GET', body=None, token=None, expected=(200,204)):
     headers={'Content-Type':'application/json', 'Authorization':'MediaBrowser Client="DailySmoke", Device="Smoke", DeviceId="daily-smoke", Version="1"'}
-    if token: headers['X-Emby-Token']=token
+    if token: headers['Authorization'] += ', Token="' + token + '"'
     data=json.dumps(body).encode() if body is not None else None
     try:
         with urllib.request.urlopen(urllib.request.Request(BASE+path,data=data,headers=headers,method=method), timeout=40) as r:
@@ -16,12 +16,19 @@ for _ in range(60):
     try: req('/Startup/User');break
     except Exception: time.sleep(1)
 else: raise RuntimeError('server not ready')
+info=req('/System/Info/Public')
+assert info['Version']=='12.2.0', info
+print('PASS server reports Jellyfin 12.2.0')
 req('/Startup/User')
 password=secrets.token_urlsafe(24)
 req('/Startup/User','POST',{'Name':'Adult','Password':password})
 req('/Startup/Complete','POST')
 adult=req('/Users/AuthenticateByName','POST',{'Username':'Adult','Pw':password})
 a=adult['AccessToken']; adultid=adult['User']['Id']
+plugins=req('/Plugins',token=a)
+plugin=next(p for p in plugins if p['Id'].replace('-', '').lower()=='646aafaee81c4379baf0a66aa3a1b7ca')
+assert plugin['Version']=='0.2.0.0', plugin
+print('PASS Daily Episodes 0.2.0.0 loaded')
 child=req('/Users/New','POST',{'Name':'Child','Password':password},a)
 c=req('/Users/AuthenticateByName','POST',{'Username':'Child','Pw':password})['AccessToken']; uid=child['Id']
 # Disable external metadata providers: test stays self-contained.

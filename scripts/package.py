@@ -7,11 +7,11 @@ from pathlib import Path
 import zipfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', default='0.1.0.0')
-parser.add_argument('--timestamp', default='2026-10-17T00:00:00Z')
+parser.add_argument('--version', default='0.2.0.0')
+parser.add_argument('--timestamp', default='2026-10-17T20:26:45Z')
 args = parser.parse_args()
 root = Path(__file__).resolve().parent.parent
-dll = root / 'src/JellyDaily/bin/Release/net9.0/JellyDaily.dll'
+dll = root / 'src/JellyDaily/bin/Release/net10.0/JellyDaily.dll'
 if not dll.is_file():
     raise SystemExit('Build and test the Release configuration first.')
 release = root / 'releases' / ('JellyDaily_' + args.version + '.zip')
@@ -26,15 +26,15 @@ raw = release.read_bytes()
 manifest = [{
     'guid': '646aafae-e81c-4379-baf0-a66aa3a1b7ca',
     'name': 'Daily Episodes', 'overview': 'Experimental per-child watch-gated episode releases',
-    'description': 'Sequential daily episode releases, per-child series rules and manual bonuses. Experimental MVP; no daily screen-time enforcement. Tested on Jellyfin 10.11.11.',
+    'description': 'Sequential daily episode releases, per-child series rules and manual bonuses. Experimental MVP; no daily screen-time enforcement. Targets Jellyfin 12.2.0.',
     'owner': 'julcst', 'category': 'General',
     'versions': [{
-        'version': args.version, 'targetAbi': '10.11.11.0',
+        'version': args.version, 'targetAbi': '12.2.0.0',
         'sourceUrl': f'https://raw.githubusercontent.com/julcst/jelly-daily/v{args.version}/releases/{release.name}',
         # Jellyfin's installer specifically requires MD5. Publish SHA-256 alongside it.
         'checksum': hashlib.md5(raw).hexdigest(),
         'timestamp': args.timestamp,
-        'changelog': 'Initial experimental MVP: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred.'
+        'changelog': 'Jellyfin 12.2 / .NET 10 port: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred.'
     }]
 }]
 (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

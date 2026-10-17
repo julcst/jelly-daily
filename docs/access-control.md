@@ -2,14 +2,14 @@
 
 ## Investigated upstream version
 
-Jellyfin stable tag `v10.11.11`, commit `1fbd8739292cce610231be93daf43368733edf63`, was the highest stable 10.x tag returned by the upstream Git repository during implementation. Its `global.json` selects .NET 9.
+This port targets Jellyfin stable tag `v12.2` (NuGet packages `12.2.0`, server ABI `12.2.0.0`) and .NET 10. The original implementation targeted 10.11.11 / .NET 9.
 
 Relevant source, pinned to that tag:
 
-* [`BaseItem.IsParentalAllowed` / `IsVisibleViaTags`](https://github.com/jellyfin/jellyfin/blob/v10.11.11/MediaBrowser.Controller/Entities/BaseItem.cs): compares item/inherited tags with the user's `BlockedTags` preference.
-* [`InternalItemsQuery`](https://github.com/jellyfin/jellyfin/blob/v10.11.11/MediaBrowser.Controller/Entities/InternalItemsQuery.cs): translates blocked user tags into query exclusions.
-* [`StreamingHelpers.GetStreamingState`](https://github.com/jellyfin/jellyfin/blob/v10.11.11/Jellyfin.Api/Helpers/StreamingHelpers.cs): fetches the requested item without a user argument. Blocked tags alone are insufficient evidence of direct-stream denial.
-* [`IPluginServiceRegistrator`](https://github.com/jellyfin/jellyfin/blob/v10.11.11/MediaBrowser.Controller/Plugins/IPluginServiceRegistrator.cs) and [`ApiServiceCollectionExtensions`](https://github.com/jellyfin/jellyfin/blob/v10.11.11/Jellyfin.Server/Extensions/ApiServiceCollectionExtensions.cs): permit plugin service registration and MVC controller discovery.
+* [`BaseItem.IsParentalAllowed` / `IsVisibleViaTags`](https://github.com/jellyfin/jellyfin/blob/v12.2/MediaBrowser.Controller/Entities/BaseItem.cs): compares item/inherited tags with the user's `BlockedTags` preference.
+* [`InternalItemsQuery`](https://github.com/jellyfin/jellyfin/blob/v12.2/MediaBrowser.Controller/Entities/InternalItemsQuery.cs): translates blocked user tags into query exclusions.
+* [`StreamingHelpers.GetStreamingState`](https://github.com/jellyfin/jellyfin/blob/v12.2/Jellyfin.Api/Helpers/StreamingHelpers.cs): fetches the requested item without a user argument. Blocked tags alone are insufficient evidence of direct-stream denial.
+* [`IPluginServiceRegistrator`](https://github.com/jellyfin/jellyfin/blob/v12.2/MediaBrowser.Controller/Plugins/IPluginServiceRegistrator.cs) and [`ApiServiceCollectionExtensions`](https://github.com/jellyfin/jellyfin/blob/v12.2/Jellyfin.Server/Extensions/ApiServiceCollectionExtensions.cs): permit plugin service registration and MVC controller discovery.
 
 ## Chosen MVP mechanism
 
@@ -21,7 +21,15 @@ This is an explicit server-side playback guard, not just UI hiding. However, cov
 
 The smallest stronger alternative if any route escapes enforcement is a Jellyfin server patch that applies authenticated item visibility centrally before **every** streaming, download, subtitle, image, and metadata response. A reverse proxy would require a maintained route-aware authorization service and is not silently substituted here.
 
-## Validation completed during implementation
+## Validation of the 12.2 port
+
+The Release build against Jellyfin.Controller and Jellyfin.Model 12.2.0 succeeded with no warnings; all 18 automated tests passed on .NET 10.
+
+The disposable `jellyfin/jellyfin:12.2` smoke test confirmed server version 12.2.0 and loaded plugin version 0.2.0.0. It passed child browse filtering; locked detail, playback-info, static stream, HLS manifest and download denial; cross-user override denial; adult and unlocked child playback; admin-only bonuses; watch completion without a same-day release; restart persistence; reset; and access restoration after rule removal. The test now supplies its token in the Authorization header.
+
+This validates representative server routes. Actual Jellyfin Web and Streamyfin UI interactions, all subtitle/segment/remote-control paths, and the SDK Docker build were not tested in this port.
+
+## Historical validation on 10.11.11
 
 On a disposable official `jellyfin/jellyfin:10.11.11` container with generated H.264/AAC episodes:
 
@@ -32,7 +40,7 @@ On a disposable official `jellyfin/jellyfin:10.11.11` container with generated H
 
 This covers representative paths, not every client, subtitle endpoint, HLS segment type or remote-control request. The reproducible smoke test is in `scripts/smoke-test.sh`.
 
-The native build and tests passed. Building from the Microsoft SDK Docker image was blocked in this cloud environment when the registry redirected to `centralus.data.mcr.microsoft.com` (HTTP 403); that image build is unverified here. Running the plugin inside the official Jellyfin Docker image was verified.
+These results describe the original 10.11.11 build; see the release notes for validation of the 12.2 port. The smoke-test script now selects `jellyfin/jellyfin:12.2`.
 
 ## Required live-server checks
 

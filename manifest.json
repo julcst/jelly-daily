@@ -3,17 +3,17 @@
     "guid": "646aafae-e81c-4379-baf0-a66aa3a1b7ca",
     "name": "Daily Episodes",
     "overview": "Experimental per-child watch-gated episode releases",
-    "description": "Sequential daily episode releases, per-child series rules and manual bonuses. Experimental MVP; no daily screen-time enforcement. Tested on Jellyfin 10.11.11.",
+    "description": "Sequential daily episode releases, per-child series rules and manual bonuses. Experimental MVP; no daily screen-time enforcement. Targets Jellyfin 12.2.0.",
     "owner": "julcst",
     "category": "General",
     "versions": [
       {
-        "version": "0.1.0.0",
-        "targetAbi": "10.11.11.0",
-        "sourceUrl": "https://raw.githubusercontent.com/julcst/jelly-daily/v0.1.0.0/releases/JellyDaily_0.1.0.0.zip",
-        "checksum": "b43fa542241a4bda62ae229d8560867d",
-        "timestamp": "2026-10-17T00:00:00Z",
-        "changelog": "Initial experimental MVP: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred."
+        "version": "0.2.0.0",
+        "targetAbi": "12.2.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/julcst/jelly-daily/v0.2.0.0/releases/JellyDaily_0.2.0.0.zip",
+        "checksum": "8ff457ae010b35206d8b67c9a5542469",
+        "timestamp": "2026-10-17T20:26:45Z",
+        "changelog": "Jellyfin 12.2 / .NET 10 port: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred."
       }
     ]
   }

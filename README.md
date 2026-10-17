@@ -1,6 +1,6 @@
 # Daily Episodes for Jellyfin
 
-Native C# plugin targeting **Jellyfin 10.11.11 / .NET 9**. Experimental MVP: per-child, per-series sequential releases, watch prerequisites, manual bonus releases, persistent progress, and a Jellyfin dashboard page.
+Native C# plugin targeting **Jellyfin 12.2.0 / .NET 10**. Experimental MVP: per-child, per-series sequential releases, watch prerequisites, manual bonus releases, persistent progress, and a Jellyfin dashboard page.
 
 **Do not rely on this as a production parental-control boundary yet.** See [API investigation and limitations](docs/access-control.md). A successful build and scheduler tests do not establish enforcement on every client or streaming route.
 
@@ -18,7 +18,7 @@ The dashboard is under **Dashboard → Plugins → Daily Episodes → Settings**
 
 ## Build and test
 
-Install a .NET 9 SDK, then:
+Install a .NET 10 SDK, then:
 
 ```sh
 ./scripts/build.sh
@@ -30,7 +30,7 @@ The installable assembly is `artifacts/plugin/JellyDaily.dll`. Only copy this DL
 ./scripts/smoke-test.sh
 ```
 
-It creates a temporary Jellyfin 10.11.11 instance, tiny generated episodes and temporary accounts; it removes that instance afterward. Never point the Python test directly at an existing server.
+It creates a temporary Jellyfin 12.2.0 instance, tiny generated episodes and temporary accounts; it removes that instance afterward. Never point the Python test directly at an existing server.
 
 The automated tests cover release timing, bonuses, missed days, DST, restart persistence, corruption, direct-request guard behavior, and adult isolation.
 
@@ -54,9 +54,10 @@ Open the catalog, install **Daily Episodes**, and restart Jellyfin. The manifest
 
 ## Install on TrueNAS / Docker
 
-1. Back up Jellyfin's persistent configuration and database. Confirm the server is exactly 10.11.11; other releases are unverified.
+1. Back up Jellyfin's persistent configuration and database. Confirm the server is exactly 12.2.0; other releases are unverified.
 2. Stop the Jellyfin app/container using TrueNAS Apps or your container manager.
-3. In the host dataset mounted as Jellyfin's `/config`, create `plugins/DailyEpisodes_0.1.0.0/` and copy `JellyDaily.dll` there. The resulting container path should be `/config/plugins/DailyEpisodes_0.1.0.0/JellyDaily.dll`. Host dataset paths vary; use your app's actual `/config` mount, rather than an image's ephemeral filesystem. Preserve the container UID/GID's read/write access.
+3. In the host dataset mounted as Jellyfin's `/config`, create `plugins/DailyEpisodes_0.2.0.0/` and copy `JellyDaily.dll` there. The resulting container path should be `/config/plugins/DailyEpisodes_0.2.0.0/JellyDaily.dll`. Host dataset paths vary; use your app's actual `/config` mount, rather than an image's ephemeral filesystem. Preserve the container UID/GID's read/write access.
+   When upgrading from 0.1.0.0, replace the old plugin DLL directory so only one copy of `JellyDaily.dll` is installed. Keep the plugin configuration and `jelly-daily/state.json`; the plugin ID and state format are unchanged.
 4. Start Jellyfin. Check logs for plugin-loading errors, then open the settings page.
 5. Use a disposable non-administrator child account first. Keep child passwords and administrator credentials separate. Disable child remote control of other users and download permissions in Jellyfin's user policy.
 6. Configure a test series, then perform the access checks in [the validation guide](docs/access-control.md). Test your actual Jellyfin clients, including Streamyfin, before relying on restrictions.

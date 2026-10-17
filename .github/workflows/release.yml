@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.x
       - run: dotnet test tests/JellyDaily.Tests -c Release
       - name: Verify packaged checksum
         run: |
@@ -28,7 +28,7 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release $RELEASE_TAG already exists; keeping its assets unchanged."
           else
-            gh release create "$RELEASE_TAG" releases/JellyDaily_*.zip manifest.json releases/SHA256SUMS \
-              --verify-tag --prerelease --title "Daily Episodes $RELEASE_TAG (experimental MVP)" \
+            gh release create "$RELEASE_TAG" "releases/JellyDaily_${RELEASE_TAG#v}.zip" manifest.json releases/SHA256SUMS \
+              --prerelease --title "Daily Episodes $RELEASE_TAG (experimental MVP)" \
               --notes-file docs/release-notes.md
           fi
