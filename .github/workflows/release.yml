@@ -1,0 +1,26 @@
+name: Publish release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - run: dotnet test tests/JellyDaily.Tests -c Release
+      - name: Verify packaged checksum
+        run: |
+          cd releases
+          sha256sum --check SHA256SUMS
+      - name: Publish tested package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" releases/JellyDaily_*.zip manifest.json releases/SHA256SUMS \
+            --verify-tag --prerelease --title "Daily Episodes $GITHUB_REF_NAME (experimental MVP)" \
+            --notes-file docs/release-notes.md

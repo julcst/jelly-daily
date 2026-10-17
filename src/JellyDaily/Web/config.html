@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html><head><title>Daily Episodes</title></head><body>
+<div id="dailyEpisodesPage" data-role="page" class="page type-interior pluginConfigurationPage"><div data-role="content"><div class="content-primary">
+<h1>Daily Episodes</h1><p>Experimental MVP. Test direct playback denial before enabling on a child's account. Screen-time limits are not implemented.</p>
+<form id="dailyForm">
+<div class="inputContainer"><label class="inputLabel" for="dailyZone">Timezone (IANA)</label><input is="emby-input" id="dailyZone" required></div>
+<div class="inputContainer"><label class="inputLabel" for="dailyTime">Daily release time</label><input is="emby-input" id="dailyTime" type="time" required></div>
+<div class="inputContainer"><label class="inputLabel" for="dailyThreshold">Completion percentage</label><input is="emby-input" id="dailyThreshold" type="number" min="1" max="100" required></div>
+<h2>Child and series</h2><p>Choose a non-administrator account and series. Season zero and unnumbered episodes are excluded from automatic releases and remain locked.</p>
+<select id="dailyChild" aria-label="Child account"></select> <select id="dailySeries" aria-label="Series"></select>
+<button is="emby-button" type="button" id="dailyAdd">Add scheduling rule</button>
+<div id="dailyRules"></div>
+<button is="emby-button" type="submit" class="raised button-submit block">Save settings</button>
+</form>
+<h2>Manual release</h2><p>Uses the child and series selected above. Save the scheduling rule first. Bonuses do not accrue future daily credits.</p>
+<label for="dailyCount">Episode count</label><input id="dailyCount" type="number" min="1" max="100" value="2">
+<label><input id="dailyBypass" type="checkbox">Release even if the latest episode is unwatched</label>
+<button is="emby-button" id="dailyBonus" type="button">Release bonus episodes</button>
+<button is="emby-button" id="dailyReset" type="button">Reset selected release progress</button>
+<h2>Progress</h2><p>Unlocked and completed episode keys are season:episode. The next normal release requires a later local release day and completion of the latest unlocked episode.</p><pre id="dailyProgress"></pre>
+<script>
+(function () {
+    const id = '646aafae-e81c-4379-baf0-a66aa3a1b7ca';
+    const page = document.querySelector('#dailyEpisodesPage');
+    let config;
+    const el = name => page.querySelector('#daily' + name);
+    function renderRules() {
+        el('Rules').replaceChildren();
+        config.Rules.forEach((rule, index) => {
+            const row = document.createElement('p');
+            const user = [...el('Child').options].find(o => o.value === rule.UserId);
+            const series = [...el('Series').options].find(o => o.value === rule.SeriesId);
+            row.append(document.createTextNode((user?.text || rule.UserId) + ' / ' + (series?.text || rule.SeriesId) + ' '));
+            const pause = document.createElement('button'); pause.type = 'button'; pause.textContent = rule.Paused ? 'Resume' : 'Pause';
+            pause.onclick = () => { rule.Paused = !rule.Paused; renderRules(); }; row.append(pause);
+            const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Remove';
+            remove.onclick = () => { config.Rules.splice(index, 1); renderRules(); }; row.append(remove); el('Rules').append(row);
+        });
+    }
+    async function refresh() {
+        const status = await ApiClient.getJSON(ApiClient.getUrl('DailyEpisodes/Status'));
+        for (const [name, list, title] of [['Child', status.Users, 'Username'], ['Series', status.Series, 'Name']]) {
+            const selection = el(name).value; el(name).replaceChildren();
+            list.forEach(x => { const option = document.createElement('option'); option.value = x.Id; option.textContent = x[title]; el(name).append(option); });
+            if ([...el(name).options].some(o => o.value === selection)) el(name).value = selection;
+        }
+        el('Progress').textContent = JSON.stringify(status.Progress, null, 2); renderRules();
+    }
+    const fail = error => Dashboard.alert('Daily Episodes operation failed. Check server logs and configuration. ' + (error?.message || ''));
+    page.addEventListener('pageshow', async () => {
+        try {
+            config = await ApiClient.getPluginConfiguration(id);
+            el('Zone').value = config.TimeZone; el('Time').value = config.ReleaseTime; el('Threshold').value = config.CompletionPercent;
+            await refresh();
+        } catch (error) { fail(error); }
+    });
+    el('Add').onclick = () => {
+        if (!config || !el('Child').value || !el('Series').value) return;
+        if (!config.Rules.some(r => r.UserId === el('Child').value && r.SeriesId === el('Series').value))
+            config.Rules.push({UserId: el('Child').value, SeriesId: el('Series').value, Paused: false});
+        renderRules();
+    };
+    el('Form').onsubmit = async event => {
+        event.preventDefault();
+        try {
+            config.TimeZone = el('Zone').value; config.ReleaseTime = el('Time').value; config.CompletionPercent = Number(el('Threshold').value);
+            await ApiClient.updatePluginConfiguration(id, config); await refresh(); Dashboard.alert('Settings saved.');
+        } catch (error) { fail(error); }
+    };
+    async function action(name) {
+        try {
+            if (name === 'Reset' && !window.confirm('Relock all selected series episodes? Watch history is retained. No automatic release until the next release day.')) return;
+            await ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('DailyEpisodes/' + name), contentType: 'application/json', data: JSON.stringify({UserId: el('Child').value, SeriesId: el('Series').value, Count: Number(el('Count').value), BypassWatch: el('Bypass').checked}) });
+            await refresh();
+        } catch (error) { fail(error); }
+    }
+    el('Bonus').onclick = () => action('Bonus'); el('Reset').onclick = () => action('Reset');
+})();
+</script></div></div></div></body></html>
