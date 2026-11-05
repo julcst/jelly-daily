@@ -27,7 +27,7 @@ public sealed class AccessFilter(IReleaseAccess releases, ILogger<AccessFilter> 
     {
         var principal = context.HttpContext.User;
         var claim = principal.FindFirstValue("Jellyfin-UserId");
-        if (!Guid.TryParse(claim, out var user) || !releases.IsChild(user)) { await next(); return; }
+        if (!Guid.TryParse(claim, out var user) || user == Guid.Empty || !releases.IsChild(user)) { await next(); return; }
         try
         {
             var state = await releases.SyncAsync();
@@ -37,7 +37,7 @@ public sealed class AccessFilter(IReleaseAccess releases, ILogger<AccessFilter> 
                 if (pair.Key.Equals("userId", StringComparison.OrdinalIgnoreCase) && pair.Value is Guid other && other != Guid.Empty && other != user)
                 { context.Result = new ForbidResult(); return; }
                 var ids = pair.Value switch { Guid id => new[] { id }, IEnumerable<Guid> many => many, string text when Guid.TryParse(text, out var id) => new[] { id }, _ => [] };
-                if (ids.Any(id => releases.IsLocked(user, id, state))) { context.Result = new ForbidResult(); return; }
+                if (ids.Any(id => id != Guid.Empty && releases.IsLocked(user, id, state))) { context.Result = new ForbidResult(); return; }
             }
         }
         catch (Exception error)

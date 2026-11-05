@@ -12,8 +12,9 @@ public sealed class AccessTests
     private sealed class Access : IReleaseAccess
     {
         public Guid Child = Guid.NewGuid(); public Guid Locked = Guid.NewGuid(); public bool Broken;
-        public bool IsChild(Guid user) => user == Child;
-        public bool IsLocked(Guid user, Guid itemId, Dictionary<string, ReleaseState> state) => itemId == Locked;
+        public bool IsChild(Guid user) => user == Guid.Empty ? throw new ArgumentException("Guid can't be empty") : user == Child;
+        public bool IsLocked(Guid user, Guid itemId, Dictionary<string, ReleaseState> state) =>
+            itemId == Guid.Empty ? throw new ArgumentException("Guid can't be empty") : itemId == Locked;
         public Task<Dictionary<string, ReleaseState>> SyncAsync(Guid? bonusUser = null, Guid? bonusSeries = null, int count = 1, bool bypass = false, bool reset = false) =>
             Broken ? throw new IOException("Corrupt state") : Task.FromResult(new Dictionary<string, ReleaseState>());
     }
@@ -52,5 +53,29 @@ public sealed class AccessTests
     {
         var access = new Access(); var result = await Execute(access, access.Child, new() { ["itemId"] = Guid.NewGuid() });
         Assert.True(result.Ran); Assert.Null(result.Result);
+    }
+    [Fact] public async Task EmptyUserClaimContinuesWithoutLookup()
+    {
+        var result = await Execute(new Access { Broken = true }, Guid.Empty, []);
+        Assert.True(result.Ran); Assert.Null(result.Result);
+    }
+    [Theory] [InlineData("userId")] [InlineData("parentId")] [InlineData("itemId")]
+    public async Task OptionalEmptyIdentifiersContinue(string argument)
+    {
+        var access = new Access();
+        var result = await Execute(access, access.Child, new() { [argument] = Guid.Empty });
+        Assert.True(result.Ran); Assert.Null(result.Result);
+    }
+    [Fact] public async Task EmptyStringIdentifierContinues()
+    {
+        var access = new Access();
+        var result = await Execute(access, access.Child, new() { ["parentId"] = Guid.Empty.ToString() });
+        Assert.True(result.Ran); Assert.Null(result.Result);
+    }
+    [Fact] public async Task EmptyIdentifierDoesNotHideLockedItemInList()
+    {
+        var access = new Access();
+        var result = await Execute(access, access.Child, new() { ["ids"] = new[] { Guid.Empty, access.Locked } });
+        Assert.IsType<ForbidResult>(result.Result); Assert.False(result.Ran);
     }
 }

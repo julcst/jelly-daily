@@ -61,7 +61,7 @@ public sealed class ReleaseService : IReleaseAccess, IDisposable
                 throw new InvalidOperationException("Completion threshold must be between 0 and 100.");
             var day = ReleaseEngine.Day(DateTimeOffset.UtcNow, config.TimeZone, TimeOnly.Parse(config.ReleaseTime));
             var state = store.Load();
-            var rules = config.Rules.DistinctBy(Key).Where(r =>
+            var rules = config.Rules.Where(r => r.UserId != Guid.Empty && r.SeriesId != Guid.Empty).DistinctBy(Key).Where(r =>
                 users.GetUserById(r.UserId) is { } u && !u.HasPermission(PermissionKind.IsAdministrator)).ToArray();
             var items = new Dictionary<Guid, Episode[]>();
             foreach (var rule in rules)
@@ -128,10 +128,11 @@ public sealed class ReleaseService : IReleaseAccess, IDisposable
         finally { gate.Release(); }
     }
 
-    public bool IsChild(Guid user) => users.GetUserById(user) is { } u &&
+    public bool IsChild(Guid user) => user != Guid.Empty && users.GetUserById(user) is { } u &&
         !u.HasPermission(PermissionKind.IsAdministrator) && Plugin.Instance.Configuration.Rules.Any(r => r.UserId == user);
     public bool IsLocked(Guid user, Guid itemId, Dictionary<string, ReleaseState> state)
     {
+        if (itemId == Guid.Empty) return false;
         if (library.GetItemById(itemId) is not Episode episode) return false;
         return Plugin.Instance.Configuration.Rules.Where(r => r.UserId == user && r.SeriesId == episode.SeriesId)
             .Any(r => !state.TryGetValue(Key(r), out var p) || !p.Unlocked.Contains(EpisodeKey(episode)));
