@@ -1,5 +1,8 @@
 # Daily Episodes for Jellyfin
 
+> [!NOTE]  
+> This project is entirely AI-written
+
 Native C# plugin targeting **Jellyfin 12.2.0 / .NET 10**. Experimental MVP: per-child, per-series sequential releases, watch prerequisites, manual bonus releases, persistent progress, and a Jellyfin dashboard page.
 
 **Do not rely on this as a production parental-control boundary yet.** See [API investigation and limitations](docs/access-control.md). A successful build and scheduler tests do not establish enforcement on every client or streaming route.
