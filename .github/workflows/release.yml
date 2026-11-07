@@ -2,33 +2,77 @@ name: Publish release
 on:
   push:
     branches: [main]
-    paths: ['manifest.json', 'releases/**', '.github/workflows/release.yml']
+    paths: ['src/**', 'scripts/package.py', 'docs/release-notes.md', '.github/workflows/release.yml']
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
-      - run: dotnet test tests/JellyDaily.Tests -c Release
-      - name: Verify packaged checksum
+          ref: main
+          fetch-depth: 0
+      - name: Read project version
         run: |
-          cd releases
-          sha256sum --check SHA256SUMS
-      - name: Read release version
-        run: python3 -c 'import json, os; v=json.load(open("manifest.json"))[0]["versions"][0]["version"]; open(os.environ["GITHUB_ENV"], "a").write("RELEASE_TAG=v" + v + "\n")'
-      - name: Publish tested package
+          python3 - <<'PYVERSION'
+          import os
+          import xml.etree.ElementTree as ET
+          version = ET.parse('src/JellyDaily/JellyDaily.csproj').findtext('.//Version')
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write(f'RELEASE_VERSION={version}\nRELEASE_TAG=v{version}\n')
+          PYVERSION
+      - name: Check published version
+        id: published
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists; keeping its assets unchanged."
+          # Fail on API errors instead of mistaking them for a missing release.
+          gh release list --limit 1000 --json tagName > /tmp/releases.json
+          if jq -e --arg tag "$RELEASE_TAG" 'any(.[]; .tagName == $tag)' /tmp/releases.json >/dev/null; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
           else
-            gh release create "$RELEASE_TAG" "releases/JellyDaily_${RELEASE_TAG#v}.zip" manifest.json releases/SHA256SUMS \
-              --prerelease --title "Daily Episodes $RELEASE_TAG (experimental MVP)" \
-              --notes-file docs/release-notes.md
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-dotnet@v4
+        if: steps.published.outputs.exists == 'false'
+        with:
+          dotnet-version: 10.0.x
+      - name: Build and test
+        if: steps.published.outputs.exists == 'false'
+        run: dotnet test tests/JellyDaily.Tests -c Release
+      - name: Package tested assembly
+        if: steps.published.outputs.exists == 'false'
+        run: |
+          python3 scripts/package.py
+          (cd releases && sha256sum --check SHA256SUMS)
+      - name: Publish package
+        if: steps.published.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$RELEASE_TAG" "releases/JellyDaily_${RELEASE_VERSION}.zip" manifest.json releases/SHA256SUMS \
+            --target "$(git rev-parse HEAD)" --prerelease \
+            --title "Daily Episodes $RELEASE_TAG (experimental MVP)" \
+            --notes-file docs/release-notes.md
+      - name: Recover published catalog
+        if: steps.published.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Also repairs a prior run that published successfully but failed to push the catalog.
+          gh release download "$RELEASE_TAG" --pattern manifest.json --clobber
+          gh release download "$RELEASE_TAG" --pattern SHA256SUMS --dir releases --clobber
+      - name: Update Jellyfin repository
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add manifest.json releases/SHA256SUMS
+          if ! git diff --cached --quiet; then
+            git commit -m "Update Jellyfin catalog for $RELEASE_TAG"
+            git push origin HEAD:main
           fi

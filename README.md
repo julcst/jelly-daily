@@ -45,6 +45,12 @@ docker build --target artifact --output type=local,dest=artifacts/docker .
 
 This exports `artifacts/docker/JellyDaily.dll`; it does not build or install a Jellyfin server.
 
+## Publishing releases
+
+Update `<Version>` and `<AssemblyVersion>` in `src/JellyDaily/JellyDaily.csproj` and write `docs/release-notes.md`, then merge to `main`. The release workflow automatically tests, builds and packages that version, publishes a GitHub prerelease with the ZIP and checksums, and commits the updated Jellyfin catalog to `main`. No local packaging, tag creation or catalog edits are required. The catalog uses immutable GitHub release assets and retains older versions.
+
+Already published versions keep their assets unchanged. Use a new version for code changes. The workflow can also be run manually; rerunning it repairs a catalog update if publishing succeeded before a catalog push failed. Jellyfin installations keep using the same repository URL below.
+
 ## Install from the plugin catalog
 
 After the repository/tag is published, add this URL in **Dashboard → Plugins → Repositories**:

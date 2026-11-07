@@ -5,12 +5,19 @@ import hashlib
 import json
 from pathlib import Path
 import zipfile
+from datetime import datetime, timezone
+import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', default='2.0.1')
-parser.add_argument('--timestamp', default='2026-11-07T10:00:00Z')
+parser.add_argument('--version')
+parser.add_argument('--timestamp')
 args = parser.parse_args()
 root = Path(__file__).resolve().parent.parent
+project = ET.parse(root / 'src/JellyDaily/JellyDaily.csproj')
+args.version = args.version or project.findtext('.//Version')
+args.timestamp = args.timestamp or datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+previous = json.loads((root / 'manifest.json').read_text())[0]['versions']
+notes = (root / 'docs/release-notes.md').read_text().strip()
 dll = root / 'src/JellyDaily/bin/Release/net10.0/JellyDaily.dll'
 if not dll.is_file():
     raise SystemExit('Build and test the Release configuration first.')
@@ -30,13 +37,14 @@ manifest = [{
     'owner': 'julcst', 'category': 'General',
     'versions': [{
         'version': args.version, 'targetAbi': '12.2.0.0',
-        'sourceUrl': f'https://raw.githubusercontent.com/julcst/jelly-daily/v{args.version}/releases/{release.name}',
+        'sourceUrl': f'https://github.com/julcst/jelly-daily/releases/download/v{args.version}/{release.name}',
         # Jellyfin's installer specifically requires MD5. Publish SHA-256 alongside it.
         'checksum': hashlib.md5(raw).hexdigest(),
         'timestamp': args.timestamp,
-        'changelog': 'Fix empty GUID handling in access checks and configured rules, preventing empty-identifier lookup errors while retaining locked-episode restrictions.'
+        'changelog': notes
     }]
 }]
+manifest[0]['versions'].extend(v for v in previous if v['version'] != args.version)
 (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
 (release.parent / 'SHA256SUMS').write_text(f'{hashlib.sha256(raw).hexdigest()}  {release.name}\n')
 print(release)
