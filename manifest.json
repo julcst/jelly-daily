@@ -8,12 +8,12 @@
     "category": "General",
     "versions": [
       {
-        "version": "0.2.0.0",
+        "version": "2.0.1",
         "targetAbi": "12.2.0.0",
-        "sourceUrl": "https://raw.githubusercontent.com/julcst/jelly-daily/v0.2.0.0/releases/JellyDaily_0.2.0.0.zip",
-        "checksum": "8ff457ae010b35206d8b67c9a5542469",
-        "timestamp": "2026-10-17T20:26:45Z",
-        "changelog": "Jellyfin 12.2 / .NET 10 port: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred."
+        "sourceUrl": "https://raw.githubusercontent.com/julcst/jelly-daily/v2.0.1/releases/JellyDaily_2.0.1.zip",
+        "checksum": "19c7244956563a4ee0b3e95b49c658f1",
+        "timestamp": "2026-11-07T10:05:42Z",
+        "changelog": "Fix empty GUID handling in access checks and configured rules, preventing empty-identifier lookup errors while retaining locked-episode restrictions."
       }
     ]
   }

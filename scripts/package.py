@@ -7,8 +7,8 @@ from pathlib import Path
 import zipfile
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--version', default='0.2.0.0')
-parser.add_argument('--timestamp', default='2026-10-17T20:26:45Z')
+parser.add_argument('--version', default='2.0.1')
+parser.add_argument('--timestamp', default='2026-11-07T10:00:00Z')
 args = parser.parse_args()
 root = Path(__file__).resolve().parent.parent
 dll = root / 'src/JellyDaily/bin/Release/net10.0/JellyDaily.dll'
@@ -34,7 +34,7 @@ manifest = [{
         # Jellyfin's installer specifically requires MD5. Publish SHA-256 alongside it.
         'checksum': hashlib.md5(raw).hexdigest(),
         'timestamp': args.timestamp,
-        'changelog': 'Jellyfin 12.2 / .NET 10 port: per-child daily releases, watch gates, manual bonuses, persistent state, dashboard controls and server-side request guards. Screen-time enforcement deferred.'
+        'changelog': 'Fix empty GUID handling in access checks and configured rules, preventing empty-identifier lookup errors while retaining locked-episode restrictions.'
     }]
 }]
 (root / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')

@@ -59,7 +59,7 @@ Open the catalog, install **Daily Episodes**, and restart Jellyfin. The manifest
 
 1. Back up Jellyfin's persistent configuration and database. Confirm the server is exactly 12.2.0; other releases are unverified.
 2. Stop the Jellyfin app/container using TrueNAS Apps or your container manager.
-3. In the host dataset mounted as Jellyfin's `/config`, create `plugins/DailyEpisodes_0.2.0.0/` and copy `JellyDaily.dll` there. The resulting container path should be `/config/plugins/DailyEpisodes_0.2.0.0/JellyDaily.dll`. Host dataset paths vary; use your app's actual `/config` mount, rather than an image's ephemeral filesystem. Preserve the container UID/GID's read/write access.
+3. In the host dataset mounted as Jellyfin's `/config`, create `plugins/DailyEpisodes_2.0.1/` and copy `JellyDaily.dll` there. The resulting container path should be `/config/plugins/DailyEpisodes_2.0.1/JellyDaily.dll`. Host dataset paths vary; use your app's actual `/config` mount, rather than an image's ephemeral filesystem. Preserve the container UID/GID's read/write access.
    When upgrading from 0.1.0.0, replace the old plugin DLL directory so only one copy of `JellyDaily.dll` is installed. Keep the plugin configuration and `jelly-daily/state.json`; the plugin ID and state format are unchanged.
 4. Start Jellyfin. Check logs for plugin-loading errors, then open the settings page.
 5. Use a disposable non-administrator child account first. Keep child passwords and administrator credentials separate. Disable child remote control of other users and download permissions in Jellyfin's user policy.
